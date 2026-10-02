@@ -1,0 +1,62 @@
+name: Linux
+
+# Mirrors ConanCenter's build: stock compiler, default options, and no JDK on the machine, so
+# the recipe and test_package both take jni.h from the zulu-openjdk tool_requires.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["recipes/**", ".github/workflows/linux.yml"]
+  pull_request:
+    paths: ["recipes/**", ".github/workflows/linux.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  create:
+    name: ${{ matrix.arch }} shared=${{ matrix.shared }} ${{ matrix.build_type }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-24.04, arch: x86_64, shared: "True", build_type: Release }
+          - { runner: ubuntu-24.04, arch: x86_64, shared: "False", build_type: Release }
+          - { runner: ubuntu-24.04, arch: x86_64, shared: "True", build_type: Debug }
+          - { runner: ubuntu-24.04-arm, arch: armv8, shared: "True", build_type: Release }
+          - { runner: ubuntu-24.04-arm, arch: armv8, shared: "False", build_type: Release }
+    runs-on: ${{ matrix.runner }}
+    env:
+      CONAN_VERSION: "2.33.0"
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Conan
+        run: |
+          python3 -m venv "$RUNNER_TEMP/conan"
+          "$RUNNER_TEMP/conan/bin/pip" install --quiet "conan==$CONAN_VERSION"
+          echo "$RUNNER_TEMP/conan/bin" >> "$GITHUB_PATH"
+
+      - name: Detect profile
+        run: |
+          conan profile detect
+          conan profile show
+
+      # The runner image sets JAVA_HOME; unset it so test_package also uses zulu-openjdk
+      - name: Create package
+        run: |
+          unset JAVA_HOME
+          conan create recipes/fbjni/all --version 0.8.1 \
+            -s arch=${{ matrix.arch }} -s build_type=${{ matrix.build_type }} \
+            -o "fbjni/*:shared=${{ matrix.shared }}" \
+            --build=missing --format=json > "$RUNNER_TEMP/create.json"
+          jq -r '.graph.nodes[] | select(.ref | startswith("fbjni/")) | .package_folder' \
+            "$RUNNER_TEMP/create.json" > "$RUNNER_TEMP/package_folder"
+
+      - name: Inspect shared library
+        if: matrix.shared == 'True'
+        run: |
+          lib="$(cat "$RUNNER_TEMP/package_folder")/lib/libfbjni.so"
+          file "$lib"
+          readelf -d "$lib" | grep -E "NEEDED|SONAME"
+          test "$(readelf -d "$lib" | sed -n 's/.*Library soname: \[\(.*\)\]/\1/p')" = "libfbjni.so"
