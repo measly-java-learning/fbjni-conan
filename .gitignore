@@ -1,0 +1,8 @@
+# Conan / CMake build output
+build/
+test_package/build/
+CMakeUserPresets.json
+
+# Python
+__pycache__/
+*.pyc
