@@ -91,14 +91,16 @@ class FbjniConan(ConanFile):
     def _patch_sources(self):
         cmakelists = os.path.join(self.source_folder, "CMakeLists.txt")
         # Let compiler.cppstd and build_type pick the standard and optimization level
+        # https://github.com/facebookincubator/fbjni/issues/124
         replace_in_file(self, cmakelists, "  -std=c++20\n", "")
         replace_in_file(self, cmakelists, "  -O3\n  -DNDEBUG\n", "")
-        # Honor the shared option
+        # Honor the shared option: https://github.com/facebookincubator/fbjni/issues/124
         replace_in_file(self, cmakelists,
                         "add_library(fbjni SHARED ${fbjni_SOURCES})",
                         "add_library(fbjni ${fbjni_SOURCES})")
         # pthread_* and dladdr live in libpthread and libdl before glibc 2.34; without these the
         # shared library only resolves them inside a JVM, which has already loaded both
+        # https://github.com/facebookincubator/fbjni/issues/123
         replace_in_file(self, cmakelists,
                         "target_compile_options(fbjni PRIVATE -DBUILDING_FBJNI)",
                         "target_compile_options(fbjni PRIVATE -DBUILDING_FBJNI)\n"
