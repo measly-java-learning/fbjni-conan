@@ -12,11 +12,11 @@ required_conan_version = ">=2.0.9"
 
 class FbjniConan(ConanFile):
     name = "fbjni"
-    description = "Helper library for writing JNI code in C++"
+    description = "A library designed to simplify the usage of the Java Native Interface"
     license = "Apache-2.0"
     url = "https://github.com/conan-io/conan-center-index"
     homepage = "https://github.com/facebookincubator/fbjni"
-    topics = ("jni", "java", "android", "cpp")
+    topics = ("jni", "java", "java-native-interface")
     package_type = "library"
     settings = "os", "arch", "compiler", "build_type"
     options = {
