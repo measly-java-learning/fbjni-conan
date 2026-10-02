@@ -1,6 +1,6 @@
 # Conan / CMake build output
 build/
-test_package/build/
+**/test_package/build/
 CMakeUserPresets.json
 
 # Python
