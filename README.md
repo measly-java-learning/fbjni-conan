@@ -2,7 +2,7 @@
 
 Conan 2 recipe for [fbjni](https://github.com/facebookincubator/fbjni), Facebook's C++ wrapper around JNI, built for desktop JVMs.
 
-Upstream fbjni builds on desktop through CMake, but nobody publishes desktop binaries or a Conan recipe. This repo holds the recipe; [fbjni-runtime-dist](https://github.com/measly-java-learning/fbjni-runtime-dist) uses it to build the native libraries published to Maven Central as `org.measly:fbjni-natives`.
+Upstream fbjni builds on desktop through CMake, but nobody publishes desktop binaries or a Conan recipe. This repo holds the recipe and publishes prebuilt shared libraries as GitHub Releases. [fbjni-runtime-dist](https://github.com/measly-java-learning/fbjni-runtime-dist) downloads them and publishes them to Maven Central as `org.measly:fbjni-natives`.
 
 ## Supported platforms
 
@@ -21,6 +21,25 @@ conan create recipes/fbjni/all --version 0.8.1 -o "fbjni/*:shared=True"
 To use a JDK that is already installed, set `JAVA_HOME` (or conf `user.fbjni:java_home`) and pass `-o "fbjni/*:system_java=True"`.
 
 Consumers using `CMakeDeps` link `fbjni::fbjni`; its CMake integration runs `find_package(JNI)` to add the consumer's own `jni.h`.
+
+## Releases
+
+Pushing a tag `v<fbjni version>-r<build revision>`, such as `v0.8.1-r1`, runs `.github/workflows/release.yml`. It builds shared Release libraries with the recipe and attaches them to a GitHub Release:
+
+| Archive | Built on | Runs on |
+| --- | --- | --- |
+| `fbjni-<version>-r<n>-linux-x86_64.tar.gz` | GCC 14, manylinux_2_28 | glibc 2.28 or later |
+| `fbjni-<version>-r<n>-linux-aarch64.tar.gz` | GCC 14, manylinux_2_28 | glibc 2.28 or later |
+| `fbjni-<version>-r<n>-macos-universal2.tar.gz` | apple-clang, arm64 and x86_64 | macOS 11.0 or later |
+
+Each archive holds `lib/`, `include/` and `licenses/`. The release also carries `SHA256SUMS`, and each archive has a build provenance attestation:
+
+```sh
+sha256sum -c SHA256SUMS
+gh attestation verify fbjni-0.8.1-r1-linux-x86_64.tar.gz --repo measly-java-learning/fbjni-conan
+```
+
+Running the workflow manually builds the same archives as workflow artifacts without publishing a release.
 
 ## Status
 
